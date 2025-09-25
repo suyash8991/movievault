@@ -1,6 +1,19 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
-import app from '../src/app'; // We'll create this
+import app from '../src/app';
+// We'll import Prisma client for database testing
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// Clean up database before/after each test
+beforeEach(async () => {
+  await prisma.user.deleteMany();
+});
+
+afterEach(async()=>{
+    await prisma.user.deleteMany();
+})
 
 describe('POST /api/auth/register', () => {
   it('should register a new user with valid data', async () => {
@@ -75,4 +88,34 @@ describe('POST /api/auth/register', () => {
 
     expect(response.body.error).toBeDefined();
   });
+
+  // 🔴 RED PHASE: Database persistence test (will fail)
+  it('should save user to database', async () => {
+    const userData = {
+      email: 'test@example.com',
+      username: 'testuser',
+      password: 'Test@123',
+      firstName: 'Test',
+      lastName: 'User'
+    };
+
+    const response = await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    // Check user exists in database
+    const savedUser = await prisma.user.findUnique({
+      where: { email: userData.email }
+    });
+
+    expect(savedUser).toBeDefined();
+    expect(savedUser?.email).toBe(userData.email);
+    expect(savedUser?.username).toBe(userData.username);
+    expect(savedUser?.firstName).toBe(userData.firstName);
+    expect(savedUser?.lastName).toBe(userData.lastName);
+    expect(savedUser?.id).toBeDefined();
+    expect(savedUser?.createdAt).toBeDefined();
+  });
 });
+
