@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient, Prisma } from '../generated/prisma';
 
 const prisma = new PrismaClient();
 
@@ -58,6 +58,28 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    // Handle Prisma unique constraint violations
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        // P2002 is Prisma's unique constraint violation error code
+        const target = error.meta?.target as string[] | undefined;
+        if (target?.includes('email')) {
+          return res.status(409).json({
+            error: 'Email address already exists. Please use a different email.'
+          });
+        }
+        if (target?.includes('username')) {
+          return res.status(409).json({
+            error: 'Username already exists. Please choose a different username.'
+          });
+        }
+        return res.status(409).json({
+          error: 'A user with these details already exists.'
+        });
+      }
+    }
+
+    console.error('Registration error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

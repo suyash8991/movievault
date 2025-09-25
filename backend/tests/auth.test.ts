@@ -143,5 +143,40 @@ describe('POST /api/auth/register', () => {
     expect(savedUser?.password.length).toBeGreaterThan(50); // Bcrypt hashes are long
     expect(savedUser?.password).toMatch(/^\$2[aby]?\$\d+\$/); // Bcrypt format
   });
+
+  // 🔴 RED PHASE: Duplicate email test (will fail)
+  it('should reject duplicate email addresses with 409 status', async () => {
+    const userData = {
+      email: 'duplicate@example.com',
+      username: 'firstuser',
+      password: 'Test@123',
+      firstName: 'First',
+      lastName: 'User'
+    };
+
+    // Create first user successfully
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    // Attempt to create second user with same email (different username)
+    const duplicateUserData = {
+      email: 'duplicate@example.com', // Same email
+      username: 'seconduser', // Different username
+      password: 'Different@123',
+      firstName: 'Second',
+      lastName: 'User'
+    };
+
+    const response = await request(app)
+      .post('/api/auth/register')
+      .send(duplicateUserData)
+      .expect(409); // Conflict status
+
+    expect(response.body.error).toBeDefined();
+    expect(response.body.error).toContain('email');
+    expect(response.body.error.toLowerCase()).toContain('already exists');
+  });
 });
 
