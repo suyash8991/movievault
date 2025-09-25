@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
 import app from '../src/app';
 // We'll import Prisma client for database testing
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma';
 
 const prisma = new PrismaClient();
 
@@ -116,6 +116,32 @@ describe('POST /api/auth/register', () => {
     expect(savedUser?.lastName).toBe(userData.lastName);
     expect(savedUser?.id).toBeDefined();
     expect(savedUser?.createdAt).toBeDefined();
+  });
+
+  // 🔴 RED PHASE: Password hashing test (will fail)
+  it('should hash password before saving to database', async () => {
+    const userData = {
+      email: 'hash@example.com',
+      username: 'hashuser',
+      password: 'PlainText123!',
+      firstName: 'Hash',
+      lastName: 'User'
+    };
+
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    // Check that password is hashed (not stored as plain text)
+    const savedUser = await prisma.user.findUnique({
+      where: { email: userData.email }
+    });
+
+    expect(savedUser?.password).toBeDefined();
+    expect(savedUser?.password).not.toBe(userData.password); // Should be hashed, not plain text
+    expect(savedUser?.password.length).toBeGreaterThan(50); // Bcrypt hashes are long
+    expect(savedUser?.password).toMatch(/^\$2[aby]?\$\d+\$/); // Bcrypt format
   });
 });
 
