@@ -1,0 +1,50 @@
+import bcrypt from 'bcryptjs';
+import { UserRepository, CreateUserData, User } from '../repositories/userRepository';
+
+export interface RegisterUserData {
+  email: string;
+  username: string;
+  password: string; // Plain text password
+  firstName: string;
+  lastName: string;
+}
+
+export class AuthService {
+  constructor(private userRepository: UserRepository) {}
+
+  async registerUser(userData: RegisterUserData): Promise<User> {
+    // Hash password (business logic)
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+
+    // Create user data with hashed password
+    const createUserData: CreateUserData = {
+      ...userData,
+      password: hashedPassword
+    };
+
+    // Save user via repository
+    return await this.userRepository.create(createUserData);
+  }
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findByEmail(email);
+  }
+
+  // For future login functionality
+  async validateCredentials(email: string, password: string): Promise<User | null> {
+    const user = await this.userRepository.findByEmailWithPassword(email);
+    if (!user) {
+      return null;
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return null;
+    }
+
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+}
