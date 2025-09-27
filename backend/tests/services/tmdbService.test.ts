@@ -237,7 +237,7 @@ describe('TmdbService', () => {
       await tmdbService.searchMovies('Fight Club', 2);
 
       const expectedUrl = expect.stringMatching(
-        /.*search\/movie.*query=Fight%20Club.*page=2.*api_key=test-api-key-123/
+        /.*search\/movie.*api_key=test-api-key-123.*query=Fight\+Club.*page=2/
       );
       expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
     });
