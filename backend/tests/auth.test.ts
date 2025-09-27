@@ -261,3 +261,140 @@ describe('POST /api/auth/login', () => {
   });
 });
 
+describe('Authentication Middleware', () => {
+  let validToken: string;
+  let expiredToken: string;
+  let invalidToken: string;
+
+  beforeEach(async () => {
+    // Create a user and get valid token for testing
+    const userData = {
+      email: 'middleware@example.com',
+      username: 'middlewareuser',
+      password: 'Test@123',
+      firstName: 'Middleware',
+      lastName: 'User'
+    };
+
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({ email: userData.email, password: userData.password })
+      .expect(200);
+
+    validToken = loginResponse.body.accessToken;
+
+    // Create an invalid token for testing
+    invalidToken = 'invalid.jwt.token';
+
+    // Create an expired token (we'll simulate this)
+    expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE2MDk0NTkxOTksImV4cCI6MTYwOTQ1OTE5OX0.expired';
+  });
+
+  describe('GET /api/users/profile', () => {
+    it('should return user profile with valid token', async () => {
+      const response = await request(app)
+        .get('/api/users/profile')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.user).toBeDefined();
+      expect(response.body.user.email).toBe('middleware@example.com');
+      expect(response.body.user.password).toBeUndefined();
+    });
+
+    it('should return 401 when no token provided', async () => {
+      const response = await request(app)
+        .get('/api/users/profile')
+        .expect(401);
+
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('Access token required');
+    });
+
+    it('should return 401 with invalid token', async () => {
+      const response = await request(app)
+        .get('/api/users/profile')
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .expect(401);
+
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('Invalid token');
+    });
+
+    it('should return 401 with malformed Authorization header', async () => {
+      const response = await request(app)
+        .get('/api/users/profile')
+        .set('Authorization', validToken) // Missing "Bearer " prefix
+        .expect(401);
+
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('Invalid authorization format');
+    });
+  });
+});
+
+describe('POST /api/auth/refresh', () => {
+  let validRefreshToken: string;
+  let invalidRefreshToken: string;
+
+  beforeEach(async () => {
+    // Create a user and get valid refresh token for testing
+    const userData = {
+      email: 'refresh@example.com',
+      username: 'refreshuser',
+      password: 'Test@123',
+      firstName: 'Refresh',
+      lastName: 'User'
+    };
+
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({ email: userData.email, password: userData.password })
+      .expect(200);
+
+    validRefreshToken = loginResponse.body.refreshToken;
+    invalidRefreshToken = 'invalid.refresh.token';
+  });
+
+  it('should return new access token with valid refresh token', async () => {
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: validRefreshToken })
+      .expect(200);
+
+    expect(response.body.accessToken).toBeDefined();
+    expect(response.body.refreshToken).toBeDefined();
+    expect(response.body.accessToken).not.toBe(validRefreshToken); // Should be different
+  });
+
+  it('should return 401 with invalid refresh token', async () => {
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: invalidRefreshToken })
+      .expect(401);
+
+    expect(response.body.error).toBeDefined();
+    expect(response.body.error).toContain('Invalid refresh token');
+  });
+
+  it('should return 400 when refresh token is missing', async () => {
+    const response = await request(app)
+      .post('/api/auth/refresh')
+      .send({})
+      .expect(400);
+
+    expect(response.body.error).toBeDefined();
+    expect(response.body.error).toContain('Refresh token is required');
+  });
+});
+
