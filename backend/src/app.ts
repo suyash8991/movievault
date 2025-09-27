@@ -13,7 +13,7 @@ app.use(express.json());
 
 // Validation schema
 const registerSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  email: z.email('Invalid email format'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters')
     .regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])/, 'Password must contain letter, number and special character'),
@@ -65,4 +65,34 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+const loginSchema = z.object({
+  email: z.email('Invalid email format'),
+  password: z.string().min(1, 'Password is required')
+});
+app.post('/api/auth/login', async (req, res) => {
+  try {
+
+    const validatedData = loginSchema.parse(req.body);
+
+    const result = await authService.loginUser(validatedData.email, validatedData.password);
+    res.status(200).json(result);
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+      });
+    }
+
+    // Handle authentication errors
+    if (error instanceof Error && error.message.includes('Invalid credentials')) {
+      return res.status(401).json({
+        error: 'Invalid credentials'
+      });
+    }
+
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 export default app;

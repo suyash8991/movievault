@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { UserRepository, CreateUserData, User } from '../repositories/userRepository';
+import jwt from 'jsonwebtoken';
 
 export interface RegisterUserData {
   email: string;
@@ -10,7 +11,7 @@ export interface RegisterUserData {
 }
 
 export class AuthService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: UserRepository) { }
 
   async registerUser(userData: RegisterUserData): Promise<User> {
     // Hash password (business logic)
@@ -46,5 +47,42 @@ export class AuthService {
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async loginUser(email: string, password: string) {
+    const user = await this.userRepository.findByEmailWithPassword(email);
+    if (!user) {
+      throw new Error('Invalid credentials');
+
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials');
+    }
+
+    // Generate JWT tokens
+    const accessToken = jwt.sign({
+      userId: user.id, email: user.email
+    },
+      process.env.JWT_SECRET || 'secret-key',
+      { expiresIn: '15m' }
+    );
+
+
+    const refreshToken = jwt.sign({
+      userId: user.id
+    },
+      process.env.JWT_REFRESH_SECRET || 'REFRESH-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    const { password: _, ...userWithoutPassword } = user;
+    return {
+      user: userWithoutPassword,
+      accessToken,
+      refreshToken
+    };
+
   }
 }

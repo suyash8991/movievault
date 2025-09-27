@@ -180,3 +180,84 @@ describe('POST /api/auth/register', () => {
   });
 });
 
+describe('POST /api/auth/login', () => {
+  it('should login user with valid credentials', async () => {
+    // First, register a user
+    const userData = {
+      email: 'login@example.com',
+      username: 'loginuser',
+      password: 'Test@123',
+      firstName: 'Login',
+      lastName: 'User'
+    };
+
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    // Now attempt to login
+    const loginData = {
+      email: 'login@example.com',
+      password: 'Test@123'
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData)
+      .expect(200);
+
+    expect(response.body.user).toBeDefined();
+    expect(response.body.user.email).toBe(userData.email);
+    expect(response.body.user.username).toBe(userData.username);
+    expect(response.body.user.password).toBeUndefined(); // Password should not be returned
+    expect(response.body.accessToken).toBeDefined();
+    expect(response.body.refreshToken).toBeDefined();
+  });
+
+  it('should reject login with invalid password', async () => {
+    // First, register a user
+    const userData = {
+      email: 'invalid@example.com',
+      username: 'invaliduser',
+      password: 'Test@123',
+      firstName: 'Invalid',
+      lastName: 'User'
+    };
+
+    await request(app)
+      .post('/api/auth/register')
+      .send(userData)
+      .expect(201);
+
+    // Attempt login with wrong password
+    const loginData = {
+      email: 'invalid@example.com',
+      password: 'WrongPassword@123'
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData)
+      .expect(401);
+
+    expect(response.body.error).toBeDefined();
+    expect(response.body.error).toContain('Invalid credentials');
+  });
+
+  it('should reject login with non-existent email', async () => {
+    const loginData = {
+      email: 'nonexistent@example.com',
+      password: 'Test@123'
+    };
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send(loginData)
+      .expect(401);
+
+    expect(response.body.error).toBeDefined();
+    expect(response.body.error).toContain('Invalid credentials');
+  });
+});
+
