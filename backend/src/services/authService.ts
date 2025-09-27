@@ -53,7 +53,6 @@ export class AuthService {
     const user = await this.userRepository.findByEmailWithPassword(email);
     if (!user) {
       throw new Error('Invalid credentials');
-
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
@@ -69,7 +68,6 @@ export class AuthService {
       { expiresIn: '15m' }
     );
 
-
     const refreshToken = jwt.sign({
       userId: user.id
     },
@@ -83,6 +81,48 @@ export class AuthService {
       accessToken,
       refreshToken
     };
+  }
 
+  async refreshToken(refreshToken: string) {
+    try {
+      // Verify refresh token
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET || 'REFRESH-secret-key'
+      ) as { userId: string };
+
+      // Check if user still exists
+      const user = await this.userRepository.findById(decoded.userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Generate new access token
+      const newAccessToken = jwt.sign({
+        userId: user.id,
+        email: user.email
+      },
+        process.env.JWT_SECRET || 'secret-key',
+        { expiresIn: '15m' }
+      );
+
+      // Generate new refresh token (token rotation)
+      const newRefreshToken = jwt.sign({
+        userId: user.id
+      },
+        process.env.JWT_REFRESH_SECRET || 'REFRESH-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
+      };
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
+        throw new Error('Invalid refresh token');
+      }
+      throw error;
+    }
   }
 }

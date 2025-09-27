@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { PrismaClient, Prisma } from '../generated/prisma';
 import { PrismaUserRepository } from './repositories/userRepository';
 import { AuthService } from './services/authService';
+import { AuthMiddleware, AuthenticatedRequest } from './middleware/authMiddleware';
 
 const prisma = new PrismaClient();
 const userRepository = new PrismaUserRepository(prisma);
 const authService = new AuthService(userRepository);
+const authMiddleware = new AuthMiddleware(userRepository);
 
 const app = express();
 app.use(express.json());
@@ -95,4 +97,62 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required')
+});
+
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const validatedData = refreshSchema.parse(req.body);
+
+    const result = await authService.refreshToken(validatedData.refreshToken);
+    res.status(200).json(result);
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'Refresh token is required'
+      });
+    }
+
+    // Handle refresh token errors
+    if (error instanceof Error && error.message.includes('Invalid refresh token')) {
+      return res.status(401).json({
+        error: 'Invalid refresh token'
+      });
+    }
+
+    console.error('Refresh token error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Protected routes
+app.get('/api/users/profile', authMiddleware.authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    // This is the most common and important reason. 
+    // A JWT is valid until it expires. If a user's account is deleted or 
+    // manually deactivated by an administrator, their existing, 
+    // unexpired token would still be valid. The database lookup serves as 
+    // a crucial real-time check to ensure the user associated with 
+    // the token still exists and is an active member of the system.
+    //  Without this check, a deleted user could continue to access 
+    // protected resources until their token expires, 
+    //  which could be days or weeks later
+    const user = await userRepository.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default app;
