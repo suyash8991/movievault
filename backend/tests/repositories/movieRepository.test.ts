@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { PrismaClient } from '../../generated/prisma';
-import { MovieRepository, CreateMovieData } from '../../src/repositories/movieRepository';
+import { PrismaMovieRepository, CreateMovieData } from '../../src/repositories/movieRepository';
 
 const prisma = new PrismaClient();
 
 describe('MovieRepository', () => {
-  let movieRepository: MovieRepository;
+  let movieRepository: PrismaMovieRepository;
 
   beforeEach(async () => {
     // Clean up movies before each test
     await prisma.movie.deleteMany();
 
-    // We'll inject this once we create the MovieRepository
-    // movieRepository = new PrismaMovieRepository(prisma);
+    // Create repository instance
+    movieRepository = new PrismaMovieRepository(prisma);
   });
 
   afterEach(async () => {

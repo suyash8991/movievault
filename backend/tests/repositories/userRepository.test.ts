@@ -84,7 +84,7 @@ describe('UserRepository', () => {
     const foundUser = await userRepository.findByEmail('findme@example.com');
 
     expect(foundUser).toBeDefined();
-    expect(foundUser?.email).toBe('findme@example.com');
+    expect(foundUser?.email).toBe(userData.email);
     expect((foundUser as any)?.password).toBeUndefined();
   });
 
