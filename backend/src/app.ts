@@ -7,6 +7,8 @@ import { AuthService } from './services/authService';
 import { MovieService } from './services/movieService';
 import { TmdbService } from './services/tmdbService';
 import { AuthMiddleware, AuthenticatedRequest } from './middleware/authMiddleware';
+import { registerSchema, loginSchema, refreshSchema } from './schemas/authSchemas';
+import { movieSearchSchema } from './schemas/movieSchemas';
 
 const prisma = new PrismaClient();
 const userRepository = new PrismaUserRepository(prisma);
@@ -18,16 +20,6 @@ const authMiddleware = new AuthMiddleware(userRepository);
 
 const app = express();
 app.use(express.json());
-
-// Validation schema
-const registerSchema = z.object({
-  email: z.email('Invalid email format'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])/, 'Password must contain letter, number and special character'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required')
-});
 
 // Auth routes
 app.post('/api/auth/register', async (req, res) => {
@@ -73,10 +65,6 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-const loginSchema = z.object({
-  email: z.email('Invalid email format'),
-  password: z.string().min(1, 'Password is required')
-});
 app.post('/api/auth/login', async (req, res) => {
   try {
 
@@ -102,10 +90,6 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
-
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required')
 });
 
 app.post('/api/auth/refresh', async (req, res) => {
@@ -159,12 +143,6 @@ app.get('/api/users/profile', authMiddleware.authenticate, async (req: Authentic
     console.error('Profile fetch error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
-
-// Movie search endpoint validation schema
-const movieSearchSchema = z.object({
-  q: z.string().min(1, 'Query parameter is required and cannot be empty'),
-  page: z.coerce.number().int().min(1).optional().default(1)
 });
 
 // Movie routes

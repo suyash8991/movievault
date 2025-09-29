@@ -8,12 +8,12 @@ const prisma = new PrismaClient();
 // Clean up database before/after each test
 beforeEach(async () => {
   await prisma.movie.deleteMany();
-  await prisma.user.deleteMany();
+  // Note: Don't clean users here to avoid interfering with auth tests
 });
 
 afterEach(async () => {
   await prisma.movie.deleteMany();
-  await prisma.user.deleteMany();
+  // Note: Don't clean users here to avoid interfering with auth tests
 });
 
 describe('Movie API Endpoints', () => {
