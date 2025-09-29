@@ -2,12 +2,18 @@ import express from 'express';
 import { z } from 'zod';
 import { PrismaClient, Prisma } from '../generated/prisma';
 import { PrismaUserRepository } from './repositories/userRepository';
+import { PrismaMovieRepository } from './repositories/movieRepository';
 import { AuthService } from './services/authService';
+import { MovieService } from './services/movieService';
+import { TmdbService } from './services/tmdbService';
 import { AuthMiddleware, AuthenticatedRequest } from './middleware/authMiddleware';
 
 const prisma = new PrismaClient();
 const userRepository = new PrismaUserRepository(prisma);
+const movieRepository = new PrismaMovieRepository(prisma);
 const authService = new AuthService(userRepository);
+const tmdbService = new TmdbService(process.env.TMDB_API_KEY || '');
+const movieService = new MovieService(tmdbService, movieRepository);
 const authMiddleware = new AuthMiddleware(userRepository);
 
 const app = express();
@@ -151,6 +157,45 @@ app.get('/api/users/profile', authMiddleware.authenticate, async (req: Authentic
     res.status(200).json({ user });
   } catch (error) {
     console.error('Profile fetch error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Movie search endpoint validation schema
+const movieSearchSchema = z.object({
+  q: z.string().min(1, 'Query parameter is required and cannot be empty'),
+  page: z.coerce.number().int().min(1).optional().default(1)
+});
+
+// Movie routes
+app.get('/api/movies/search', async (req, res) => {
+  try {
+    // Validate query parameters
+    const validatedParams = movieSearchSchema.parse(req.query);
+
+    // Search movies using the movie service
+    const results = await movieService.searchMovies(validatedParams.q, validatedParams.page);
+
+    res.status(200).json(results);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+      });
+    }
+
+    // Handle TMDb API errors
+    if (error instanceof Error && error.message.startsWith('TMDb API')) {
+      if (error.message.includes('rate limit')) {
+        return res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+      }
+      if (error.message.includes('authentication')) {
+        return res.status(503).json({ error: 'Movie service temporarily unavailable' });
+      }
+      return res.status(500).json({ error: 'Movie search failed' });
+    }
+
+    console.error('Movie search error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
