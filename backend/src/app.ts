@@ -5,10 +5,13 @@ import { PrismaMovieRepository } from './repositories/movieRepository';
 import { AuthService } from './services/authService';
 import { MovieService } from './services/movieService';
 import { TmdbService } from './services/tmdbService';
-import { AuthMiddleware, AuthenticatedRequest } from './middleware/authMiddleware';
+import { AuthMiddleware } from './middleware/authMiddleware';
 import { AuthController } from './controllers/authController';
 import { UserController } from './controllers/userController';
 import { MovieController } from './controllers/movieController';
+import { createAuthRoutes } from './routes/authRoutes';
+import { createUserRoutes } from './routes/userRoutes';
+import { createMovieRoutes } from './routes/movieRoutes';
 
 const prisma = new PrismaClient();
 const userRepository = new PrismaUserRepository(prisma);
@@ -26,17 +29,9 @@ const movieController = new MovieController(movieService);
 const app = express();
 app.use(express.json());
 
-// Auth routes
-app.post('/api/auth/register', (req, res) => authController.register(req, res));
-
-app.post('/api/auth/login', (req, res) => authController.login(req, res));
-
-app.post('/api/auth/refresh', (req, res) => authController.refresh(req, res));
-
-// Protected routes
-app.get('/api/users/profile', authMiddleware.authenticate, (req: AuthenticatedRequest, res) => userController.getProfile(req, res));
-
-// Movie routes
-app.get('/api/movies/search', (req, res) => movieController.search(req, res));
+// Mount route modules
+app.use('/api/auth', createAuthRoutes(authController));
+app.use('/api/users', createUserRoutes(userController, authMiddleware));
+app.use('/api/movies', createMovieRoutes(movieController));
 
 export default app;
