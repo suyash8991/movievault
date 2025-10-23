@@ -10,6 +10,17 @@ export interface MovieSearchResult {
   voteAverage: number;
 }
 
+export interface MovieDetails extends MovieSearchResult {
+  genres?: Array<{ id: number; name: string }>;
+  runtime?: number;
+  tagline?: string;
+  budget?: number;
+  revenue?: number;
+  productionCompanies?: Array<{ id: number; name: string; logo_path?: string }>;
+  voteCount?: number;
+  backdropPath?: string | null;
+}
+
 export interface PaginatedMovieSearchResponse {
   page: number;
   results: MovieSearchResult[];
@@ -83,5 +94,74 @@ export class MovieService {
       // Log but don't fail the search if caching fails
       console.warn(`Failed to cache movie ${tmdbMovie.id}:`, error);
     }
+  }
+
+  async getMovieById(id: number): Promise<MovieDetails> {
+    try {
+      // First check if the movie exists in our database
+      const cachedMovie = await this.movieRepository.findById(id);
+
+      // Get full details from TMDb API
+      const tmdbMovie = await this.tmdbService.getMovieDetails(id);
+
+      // Transform TMDb movie details to our format
+      return this.transformTmdbMovieDetails(tmdbMovie);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Movie not found') {
+        throw error; // Re-throw not found error
+      }
+      if (error instanceof Error && error.message.startsWith('TMDb API')) {
+        throw error; // Re-throw TMDb errors as-is
+      }
+      throw new Error(`Failed to get movie details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getSimilarMovies(movieId: number, page: number = 1): Promise<PaginatedMovieSearchResponse> {
+    try {
+      // Get similar movies from TMDb API
+      const tmdbResponse = await this.tmdbService.getSimilarMovies(movieId, page);
+
+      // Transform TMDb results to our format
+      const results: MovieSearchResult[] = tmdbResponse.results.map(this.transformTmdbMovie);
+
+      // Cache movies in database (non-blocking)
+      Promise.all(tmdbResponse.results.map(movie => this.cacheMovieIfNotExists(movie)))
+        .catch(error => console.warn('Error caching similar movies:', error));
+
+      return {
+        page: tmdbResponse.page,
+        results,
+        total_pages: tmdbResponse.total_pages,
+        total_results: tmdbResponse.total_results
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Movie not found') {
+        throw error; // Re-throw not found error
+      }
+      if (error instanceof Error && error.message.startsWith('TMDb API')) {
+        throw error; // Re-throw TMDb errors as-is
+      }
+      throw new Error(`Failed to get similar movies: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private transformTmdbMovieDetails(tmdbMovie: TmdbMovie): MovieDetails {
+    return {
+      id: tmdbMovie.id,
+      title: tmdbMovie.title,
+      overview: tmdbMovie.overview,
+      releaseDate: tmdbMovie.release_date,
+      posterPath: tmdbMovie.poster_path,
+      voteAverage: tmdbMovie.vote_average,
+      genres: tmdbMovie.genres,
+      runtime: tmdbMovie.runtime,
+      tagline: tmdbMovie.tagline,
+      budget: tmdbMovie.budget,
+      revenue: tmdbMovie.revenue,
+      productionCompanies: tmdbMovie.production_companies,
+      voteCount: tmdbMovie.vote_count,
+      backdropPath: tmdbMovie.backdrop_path,
+    };
   }
 }

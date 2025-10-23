@@ -4,12 +4,16 @@ export interface TmdbMovie {
   overview: string;
   release_date: string;
   poster_path: string | null;
+  backdrop_path?: string | null;
   vote_average: number;
+  vote_count?: number;
   genre_ids?: number[];
   runtime?: number;
+  tagline?: string;
+  budget?: number;
+  revenue?: number;
   genres?: Array<{ id: number; name: string }>;
-  production_companies?: Array<{ id: number; name: string }>;
-  vote_count?: number;
+  production_companies?: Array<{ id: number; name: string; logo_path?: string }>;
 }
 
 export interface TmdbSearchResponse {
@@ -88,6 +92,33 @@ export class TmdbService {
   async getPopularMovies(page: number = 1): Promise<TmdbSearchResponse> {
     try {
       const url = this.buildUrl('movie/popular', {
+        page: page.toString()
+      });
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        await this.handleApiError(response);
+      }
+
+      const data = await response.json() as TmdbSearchResponse;
+      return data;
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('TMDb API')) {
+        throw error; // Re-throw our custom errors
+      }
+      throw new Error(`TMDb API network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getSimilarMovies(movieId: number, page: number = 1): Promise<TmdbSearchResponse> {
+    try {
+      const url = this.buildUrl(`movie/${movieId}/similar`, {
         page: page.toString()
       });
 
