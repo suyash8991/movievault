@@ -60,7 +60,8 @@ export class MovieController {
       }
 
       // Handle movie not found
-      if (error instanceof Error && error.message === 'Movie not found') {
+      if (error instanceof Error &&
+          (error.message === 'Movie not found' || error.message.includes('Movie not found'))) {
         res.status(404).json({ error: 'Movie not found' });
         return;
       }
@@ -105,7 +106,8 @@ export class MovieController {
       }
 
       // Handle movie not found
-      if (error instanceof Error && error.message === 'Movie not found') {
+      if (error instanceof Error &&
+          (error.message === 'Movie not found' || error.message.includes('Movie not found'))) {
         res.status(404).json({ error: 'Movie not found' });
         return;
       }

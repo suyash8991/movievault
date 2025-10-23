@@ -30,8 +30,10 @@ export class PrismaMovieRepository implements MovieRepository {
   constructor(private prisma: PrismaClient) {}
 
   async create(movieData: CreateMovieData): Promise<Movie> {
-    const movie = await this.prisma.movie.create({
-      data: movieData
+    const movie = await this.prisma.movie.upsert({
+      where: { id: movieData.id },
+      update: movieData,
+      create: movieData
     });
 
     return movie;
