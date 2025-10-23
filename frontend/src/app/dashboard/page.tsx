@@ -28,13 +28,13 @@ function DashboardContent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto text-neutral-950">
         <div className="bg-white shadow-md rounded-lg p-6">
           <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">Welcome, {user?.firstName}!</h2>
-            <p className="text-gray-600">
+            <p className="text-neutral-950">
               This is a protected page that can only be accessed by authenticated users.
             </p>
           </div>

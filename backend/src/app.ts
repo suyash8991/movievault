@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { PrismaClient } from '../generated/prisma';
 import { PrismaUserRepository } from './repositories/userRepository';
 import { PrismaMovieRepository } from './repositories/movieRepository';
@@ -27,6 +28,16 @@ const userController = new UserController(userRepository);
 const movieController = new MovieController(movieService);
 
 const app = express();
+// Configure CORS middleware
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: 'Content-Type,Authorization',
+  optionsSuccessStatus: 200
+}));
 app.use(express.json());
 
 // Mount route modules
