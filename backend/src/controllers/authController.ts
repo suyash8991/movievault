@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Prisma } from '../../generated/prisma';
+import jwt from 'jsonwebtoken';
 import { AuthService } from '../services/authService';
 import { UserRepository } from '../repositories/userRepository';
 import { registerSchema, loginSchema, refreshSchema } from '../schemas/authSchemas';
@@ -20,8 +21,21 @@ export class AuthController {
       // Register user using service (handles password hashing)
       const user = await this.authService.registerUser(validatedData);
 
-      // Return user data (password omitted by service/repository)
-      res.status(201).json({ user });
+      // Generate JWT tokens for automatic login upon registration
+      const accessToken = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET || 'secret-key',
+        { expiresIn: '15m' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_REFRESH_SECRET || 'REFRESH-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      // Return user data with tokens
+      res.status(201).json({ user, accessToken, refreshToken });
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({
