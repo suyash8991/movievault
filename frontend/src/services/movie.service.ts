@@ -39,11 +39,21 @@ export const movieService = {
   },
 
   /**
-   * Get movie details by ID (placeholder for future implementation)
+   * Get movie details by ID
    * GET /api/movies/:id
    */
   async getMovieById(id: number): Promise<MovieDetails> {
     return api.get<MovieDetails>(`/api/movies/${id}`);
+  },
+
+  /**
+   * Get similar movies based on a movie ID
+   * GET /api/movies/:id/similar
+   */
+  async getSimilarMovies(id: number, page: number = 1): Promise<PaginatedMovies> {
+    return api.get<PaginatedMovies>(`/api/movies/${id}/similar`, {
+      params: { page }
+    });
   }
 };
 
