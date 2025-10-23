@@ -27,6 +27,7 @@ export interface RequestConfig {
   headers?: HeadersInit;
   body?: unknown;
   requiresAuth?: boolean;
+  params?: Record<string, string | number | boolean | undefined>;
 }
 
 /**

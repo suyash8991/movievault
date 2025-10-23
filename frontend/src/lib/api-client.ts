@@ -109,7 +109,26 @@ async function apiClient<T>(
     endpoint: string,
     config: RequestConfig = {}
 ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    // Build URL with query parameters if provided
+    let url = `${API_BASE_URL}${endpoint}`;
+
+    // Add query parameters if they exist
+    if (config.params) {
+        const queryParams = new URLSearchParams();
+
+        // Add each parameter to the query string, filtering out undefined values
+        Object.entries(config.params).forEach(([key, value]) => {
+            if (value !== undefined) {
+                queryParams.append(key, String(value));
+            }
+        });
+
+        // Append query string to URL if there are parameters
+        const queryString = queryParams.toString();
+        if (queryString) {
+            url = `${url}?${queryString}`;
+        }
+    }
 
     // Apply request interceptor
     const fetchConfig = requestInterceptor(config);
