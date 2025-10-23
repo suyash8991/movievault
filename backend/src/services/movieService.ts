@@ -101,47 +101,91 @@ export class MovieService {
       // First check if the movie exists in our database
       const cachedMovie = await this.movieRepository.findById(id);
 
-      // Get full details from TMDb API
-      const tmdbMovie = await this.tmdbService.getMovieDetails(id);
+      try {
+        // Get full details from TMDb API
+        const tmdbMovie = await this.tmdbService.getMovieDetails(id);
 
-      // Transform TMDb movie details to our format
-      return this.transformTmdbMovieDetails(tmdbMovie);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Movie not found') {
-        throw error; // Re-throw not found error
+        // Transform TMDb movie details to our format
+        return this.transformTmdbMovieDetails(tmdbMovie);
+      } catch (tmdbError) {
+        // If TMDb returns 'Movie not found', convert to our standard error
+        if (tmdbError instanceof Error && tmdbError.message === 'Movie not found') {
+          const notFoundError = new Error('Movie not found');
+          // Add a property to explicitly mark this as a not found error for easier identification
+          (notFoundError as any).isNotFoundError = true;
+          throw notFoundError;
+        }
+        // Re-throw other TMDb errors
+        throw tmdbError;
       }
+    } catch (error) {
+      // Pass through 'Movie not found' errors
+      if (
+        error instanceof Error &&
+        (error.message === 'Movie not found' || (error as any).isNotFoundError)
+      ) {
+        const notFoundError = new Error('Movie not found');
+        (notFoundError as any).isNotFoundError = true;
+        throw notFoundError; // Re-throw not found error with marker property
+      }
+
+      // Pass through TMDb API errors
       if (error instanceof Error && error.message.startsWith('TMDb API')) {
         throw error; // Re-throw TMDb errors as-is
       }
+
+      // Convert other errors to a standard format
       throw new Error(`Failed to get movie details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async getSimilarMovies(movieId: number, page: number = 1): Promise<PaginatedMovieSearchResponse> {
     try {
-      // Get similar movies from TMDb API
-      const tmdbResponse = await this.tmdbService.getSimilarMovies(movieId, page);
+      try {
+        // Get similar movies from TMDb API
+        const tmdbResponse = await this.tmdbService.getSimilarMovies(movieId, page);
 
-      // Transform TMDb results to our format
-      const results: MovieSearchResult[] = tmdbResponse.results.map(this.transformTmdbMovie);
+        // Transform TMDb results to our format
+        const results: MovieSearchResult[] = tmdbResponse.results.map(this.transformTmdbMovie);
 
-      // Cache movies in database (non-blocking)
-      Promise.all(tmdbResponse.results.map(movie => this.cacheMovieIfNotExists(movie)))
-        .catch(error => console.warn('Error caching similar movies:', error));
+        // Cache movies in database (non-blocking)
+        Promise.all(tmdbResponse.results.map(movie => this.cacheMovieIfNotExists(movie)))
+          .catch(error => console.warn('Error caching similar movies:', error));
 
-      return {
-        page: tmdbResponse.page,
-        results,
-        total_pages: tmdbResponse.total_pages,
-        total_results: tmdbResponse.total_results
-      };
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Movie not found') {
-        throw error; // Re-throw not found error
+        return {
+          page: tmdbResponse.page,
+          results,
+          total_pages: tmdbResponse.total_pages,
+          total_results: tmdbResponse.total_results
+        };
+      } catch (tmdbError) {
+        // If TMDb returns 'Movie not found', convert to our standard error
+        if (tmdbError instanceof Error && tmdbError.message === 'Movie not found') {
+          const notFoundError = new Error('Movie not found');
+          // Add a property to explicitly mark this as a not found error for easier identification
+          (notFoundError as any).isNotFoundError = true;
+          throw notFoundError;
+        }
+        // Re-throw other TMDb errors
+        throw tmdbError;
       }
+    } catch (error) {
+      // Pass through 'Movie not found' errors
+      if (
+        error instanceof Error &&
+        (error.message === 'Movie not found' || (error as any).isNotFoundError)
+      ) {
+        const notFoundError = new Error('Movie not found');
+        (notFoundError as any).isNotFoundError = true;
+        throw notFoundError; // Re-throw not found error with marker property
+      }
+
+      // Pass through TMDb API errors
       if (error instanceof Error && error.message.startsWith('TMDb API')) {
         throw error; // Re-throw TMDb errors as-is
       }
+
+      // Convert other errors to a standard format
       throw new Error(`Failed to get similar movies: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
