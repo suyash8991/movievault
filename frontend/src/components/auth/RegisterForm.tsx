@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { RegisterRequest } from '@/types/auth.types';
@@ -38,6 +38,26 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
   // Auth context
   const { register } = useAuth();
 
+  // Calculate password strength
+  const passwordStrength = useMemo(() => {
+    if (!formData.password) return 0;
+
+    let score = 0;
+
+    // Length check
+    if (formData.password.length >= 8) score += 1;
+    if (formData.password.length >= 12) score += 1;
+
+    // Character type checks
+    if (/[A-Z]/.test(formData.password)) score += 1;
+    if (/[a-z]/.test(formData.password)) score += 1;
+    if (/[0-9]/.test(formData.password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(formData.password)) score += 1;
+
+    // Normalize to 0-100 scale (max score is 6)
+    return Math.min(Math.round((score / 6) * 100), 100);
+  }, [formData.password]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -57,6 +77,140 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
     }
   };
 
+  const validateField = (name: string) => {
+    const errors: Record<string, string> = {};
+
+    switch(name) {
+      case 'email':
+        if (!formData.email) {
+          errors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+
+      case 'username':
+        if (!formData.username) {
+          errors.username = 'Username is required';
+        } else if (formData.username.length < 3) {
+          errors.username = 'Username must be at least 3 characters long';
+        } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+          errors.username = 'Username can only contain letters, numbers and underscores';
+        }
+        break;
+
+      case 'firstName':
+        if (!formData.firstName) {
+          errors.firstName = 'First name is required';
+        } else if (formData.firstName.length < 2) {
+          errors.firstName = 'First name must be at least 2 characters long';
+        }
+        break;
+
+      case 'lastName':
+        if (!formData.lastName) {
+          errors.lastName = 'Last name is required';
+        } else if (formData.lastName.length < 2) {
+          errors.lastName = 'Last name must be at least 2 characters long';
+        }
+        break;
+
+      case 'password':
+        if (!formData.password) {
+          errors.password = 'Password is required';
+        } else if (formData.password.length < 8) {
+          errors.password = 'Password must be at least 8 characters long';
+        } else if (!/[A-Z]/.test(formData.password)) {
+          errors.password = 'Password must contain at least one uppercase letter';
+        } else if (!/[a-z]/.test(formData.password)) {
+          errors.password = 'Password must contain at least one lowercase letter';
+        } else if (!/[0-9]/.test(formData.password)) {
+          errors.password = 'Password must contain at least one number';
+        } else if (!/[^A-Za-z0-9]/.test(formData.password)) {
+          errors.password = 'Password must contain at least one special character';
+        }
+
+        // Also validate password confirmation if it exists
+        if (passwordConfirm && passwordConfirm !== formData.password) {
+          errors.passwordConfirm = 'Passwords do not match';
+        }
+        break;
+
+      case 'passwordConfirm':
+        if (!passwordConfirm) {
+          errors.passwordConfirm = 'Please confirm your password';
+        } else if (passwordConfirm !== formData.password) {
+          errors.passwordConfirm = 'Passwords do not match';
+        }
+        break;
+    }
+
+    if (errors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: errors[name] }));
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateForm = (): Record<string, string> => {
+    const errors: Record<string, string> = {};
+
+    // Email validation
+    if (!formData.email) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    // Username validation
+    if (!formData.username) {
+      errors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters long';
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      errors.username = 'Username can only contain letters, numbers and underscores';
+    }
+
+    // First name validation
+    if (!formData.firstName) {
+      errors.firstName = 'First name is required';
+    } else if (formData.firstName.length < 2) {
+      errors.firstName = 'First name must be at least 2 characters long';
+    }
+
+    // Last name validation
+    if (!formData.lastName) {
+      errors.lastName = 'Last name is required';
+    } else if (formData.lastName.length < 2) {
+      errors.lastName = 'Last name must be at least 2 characters long';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters long';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      errors.password = 'Password must contain at least one uppercase letter';
+    } else if (!/[a-z]/.test(formData.password)) {
+      errors.password = 'Password must contain at least one lowercase letter';
+    } else if (!/[0-9]/.test(formData.password)) {
+      errors.password = 'Password must contain at least one number';
+    } else if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      errors.password = 'Password must contain at least one special character';
+    }
+
+    // Password confirmation validation
+    if (!passwordConfirm) {
+      errors.passwordConfirm = 'Please confirm your password';
+    } else if (passwordConfirm !== formData.password) {
+      errors.passwordConfirm = 'Passwords do not match';
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -64,9 +218,8 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
     setError(null);
     setFieldErrors({});
 
-    // Basic validation will be implemented in the next step
-    const validationErrors: Record<string, string> = {};
-    // ... validation logic will be added later
+    // Validate form
+    const validationErrors = validateForm();
 
     // Check for validation errors
     if (Object.keys(validationErrors).length > 0) {
@@ -118,6 +271,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
               type="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={() => validateField('email')}
               className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                 ${fieldErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
               placeholder="your@email.com"
@@ -139,6 +293,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
               type="text"
               value={formData.username}
               onChange={handleChange}
+              onBlur={() => validateField('username')}
               className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                 ${fieldErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
               placeholder="Choose a unique username"
@@ -161,6 +316,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
                 type="text"
                 value={formData.firstName}
                 onChange={handleChange}
+                onBlur={() => validateField('firstName')}
                 className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                   ${fieldErrors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 disabled={isLoading}
@@ -179,6 +335,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
                 type="text"
                 value={formData.lastName}
                 onChange={handleChange}
+                onBlur={() => validateField('lastName')}
                 className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                   ${fieldErrors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 disabled={isLoading}
@@ -200,6 +357,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
               type="password"
               value={formData.password}
               onChange={handleChange}
+              onBlur={() => validateField('password')}
               className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                 ${fieldErrors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
               placeholder="Choose a secure password"
@@ -207,6 +365,27 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
             />
             {fieldErrors.password && (
               <p className="mt-1 text-red-500 text-sm">{fieldErrors.password}</p>
+            )}
+
+            {/* Password strength meter */}
+            {formData.password && (
+              <div className="mt-2">
+                <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${
+                      passwordStrength < 33 ? 'bg-red-500' :
+                      passwordStrength < 66 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${passwordStrength}%` }}
+                  ></div>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {passwordStrength < 33 ? 'Weak' :
+                   passwordStrength < 66 ? 'Moderate' :
+                   'Strong'} password
+                </p>
+              </div>
             )}
           </div>
 
@@ -221,6 +400,7 @@ export default function RegisterForm({ onSuccess, returnUrl = '/dashboard' }: Re
               type="password"
               value={passwordConfirm}
               onChange={handlePasswordConfirmChange}
+              onBlur={() => validateField('passwordConfirm')}
               className={`w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-500/50
                 ${fieldErrors.passwordConfirm ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
               placeholder="Re-enter your password"
