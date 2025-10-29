@@ -7,6 +7,9 @@ export const movieSearchSchema = z.object({
 
 export const movieIdSchema = z.object({
   id: z.coerce.number().int().positive('Movie ID must be a positive integer')
+}).refine(data => !isNaN(data.id), {
+  message: 'Invalid Movie ID format',
+  path: ['id']
 });
 
 export type MovieSearchRequest = z.infer<typeof movieSearchSchema>;

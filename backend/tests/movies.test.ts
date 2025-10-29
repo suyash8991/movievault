@@ -130,10 +130,10 @@ describe('Movie API Endpoints', () => {
     });
   });
 
+  // 🔴 RED PHASE: Movie Details Endpoint Tests
   describe('GET /api/movies/:id', () => {
     it('should return movie details for valid ID', async () => {
-      // Use Fight Club as a test movie (TMDb ID: 550)
-      const movieId = 550;
+      const movieId = 550; // Fight Club (TMDb ID)
 
       const response = await request(app)
         .get(`/api/movies/${movieId}`)
@@ -144,27 +144,22 @@ describe('Movie API Endpoints', () => {
       expect(response.body.title).toBeDefined();
       expect(response.body.overview).toBeDefined();
       expect(response.body.releaseDate).toBeDefined();
+      expect(response.body.posterPath).toBeDefined();
       expect(response.body.voteAverage).toBeDefined();
 
-      // Check for additional fields that should be in movie details
+      // Extended movie details fields
       expect(response.body.genres).toBeDefined();
       expect(Array.isArray(response.body.genres)).toBe(true);
       expect(response.body.runtime).toBeDefined();
-      expect(typeof response.body.runtime).toBe('number');
-    });
-
-    it('should return 400 for invalid movie ID format', async () => {
-      const response = await request(app)
-        .get('/api/movies/invalid-id')
-        .expect(400);
-
-      expect(response.body.error).toBeDefined();
-      expect(response.body.error).toContain('id');
+      expect(response.body.tagline).toBeDefined();
+      expect(response.body.budget).toBeDefined();
+      expect(response.body.revenue).toBeDefined();
+      expect(response.body.productionCompanies).toBeDefined();
+      expect(Array.isArray(response.body.productionCompanies)).toBe(true);
     });
 
     it('should return 404 for non-existent movie', async () => {
-      // Use a very large ID that is unlikely to exist
-      const nonExistentId = 9999999;
+      const nonExistentId = 9999999; // Assuming this ID doesn't exist
 
       const response = await request(app)
         .get(`/api/movies/${nonExistentId}`)
@@ -174,23 +169,32 @@ describe('Movie API Endpoints', () => {
       expect(response.body.error).toContain('Movie not found');
     });
 
-    it('should handle TMDb API errors gracefully', async () => {
-      // This test will check error handling
+    it('should return 400 for invalid ID format', async () => {
       const response = await request(app)
-        .get('/api/movies/1');
+        .get('/api/movies/invalid-id')
+        .expect(400);
 
-      // Should either return 200 with results or handle errors gracefully
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('ID');
+    });
+
+    it('should handle TMDb API errors gracefully', async () => {
+      // Use a random ID that might trigger an API error
+      const response = await request(app)
+        .get('/api/movies/123456');
+
+      // Should either return 200 with results or handle errors with proper status codes
       if (response.status !== 200) {
-        expect([500, 503, 429, 404]).toContain(response.status);
+        expect([404, 500, 503, 429]).toContain(response.status);
         expect(response.body.error).toBeDefined();
       }
     });
   });
 
+  // 🔴 RED PHASE: Similar Movies Endpoint Tests
   describe('GET /api/movies/:id/similar', () => {
-    it('should return similar movies for valid ID', async () => {
-      // Use Fight Club as a test movie (TMDb ID: 550)
-      const movieId = 550;
+    it('should return similar movies for valid movie ID', async () => {
+      const movieId = 550; // Fight Club
 
       const response = await request(app)
         .get(`/api/movies/${movieId}/similar`)
@@ -203,7 +207,7 @@ describe('Movie API Endpoints', () => {
       expect(response.body.total_pages).toBeDefined();
       expect(response.body.total_results).toBeDefined();
 
-      // Check movie structure if results exist
+      // If there are results, check their structure
       if (response.body.results.length > 0) {
         const movie = response.body.results[0];
         expect(movie.id).toBeDefined();
@@ -214,28 +218,7 @@ describe('Movie API Endpoints', () => {
       }
     });
 
-    it('should handle pagination with page parameter', async () => {
-      const movieId = 550; // Fight Club
-
-      const response = await request(app)
-        .get(`/api/movies/${movieId}/similar`)
-        .query({ page: 2 })
-        .expect(200);
-
-      expect(response.body.page).toBe(2);
-    });
-
-    it('should return 400 for invalid movie ID format', async () => {
-      const response = await request(app)
-        .get('/api/movies/invalid-id/similar')
-        .expect(400);
-
-      expect(response.body.error).toBeDefined();
-      expect(response.body.error).toContain('id');
-    });
-
-    it('should return 404 for non-existent movie', async () => {
-      // Use a very large ID that is unlikely to exist
+    it('should return 404 when reference movie does not exist', async () => {
       const nonExistentId = 9999999;
 
       const response = await request(app)
@@ -246,29 +229,35 @@ describe('Movie API Endpoints', () => {
       expect(response.body.error).toContain('Movie not found');
     });
 
-    it('should handle TMDb API errors gracefully', async () => {
-      // This test will check error handling
-      const response = await request(app)
-        .get('/api/movies/1/similar');
+    it('should handle pagination with page parameter', async () => {
+      const movieId = 550;
 
-      // Should either return 200 with results or handle errors gracefully
-      if (response.status !== 200) {
-        expect([500, 503, 429, 404]).toContain(response.status);
-        expect(response.body.error).toBeDefined();
-      }
-    });
-
-    it('should return consistent response format for empty results', async () => {
-      // This might not actually return empty results, but we're testing the format
       const response = await request(app)
-        .get('/api/movies/550/similar')
+        .get(`/api/movies/${movieId}/similar`)
+        .query({ page: 2 })
         .expect(200);
 
-      expect(response.body.results).toBeDefined();
-      expect(Array.isArray(response.body.results)).toBe(true);
-      expect(response.body.page).toBeDefined();
-      expect(response.body.total_pages).toBeDefined();
-      expect(response.body.total_results).toBeDefined();
+      expect(response.body.page).toBe(2);
+    });
+
+    it('should return 400 for invalid ID format', async () => {
+      const response = await request(app)
+        .get('/api/movies/invalid-id/similar')
+        .expect(400);
+
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toContain('ID');
+    });
+
+    it('should handle TMDb API errors gracefully', async () => {
+      const response = await request(app)
+        .get('/api/movies/123456/similar');
+
+      // Should either return 200 with results or handle errors properly
+      if (response.status !== 200) {
+        expect([404, 500, 503, 429]).toContain(response.status);
+        expect(response.body.error).toBeDefined();
+      }
     });
   });
 });

@@ -242,4 +242,117 @@ describe('TmdbService', () => {
       expect(mockFetch).toHaveBeenCalledWith(expectedUrl, expect.any(Object));
     });
   });
+
+  // 🔴 RED PHASE: Similar Movies Tests
+  describe('getSimilarMovies', () => {
+    it('should return similar movies for valid movie ID', async () => {
+      // Mock successful TMDb API response
+      const mockResponse = {
+        page: 1,
+        results: [
+          {
+            id: 807,
+            title: 'Se7en',
+            overview: 'Two homicide detectives are on a desperate hunt...',
+            release_date: '1995-09-22',
+            poster_path: '/6yoghtyTpznpBik8EngEmJskVUO.jpg',
+            vote_average: 8.3
+          },
+          {
+            id: 63,
+            title: 'Twelve Monkeys',
+            overview: 'In the year 2035, convict James Cole...',
+            release_date: '1995-12-29',
+            poster_path: '/6Sj9wDu3YugthXsU0Vry5XFAZGg.jpg',
+            vote_average: 7.5
+          }
+        ],
+        total_pages: 10,
+        total_results: 192
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+        status: 200
+      } as Response);
+
+      const result = await tmdbService.getSimilarMovies(550, 1); // 550 = Fight Club
+
+      expect(result).toBeDefined();
+      expect(result.page).toBe(1);
+      expect(result.results).toHaveLength(2);
+      expect(result.total_pages).toBe(10);
+      expect(result.total_results).toBe(192);
+
+      // Check first movie
+      expect(result.results[0].id).toBe(807);
+      expect(result.results[0].title).toBe('Se7en');
+
+      // Verify correct endpoint was called
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('movie/550/similar'),
+        expect.objectContaining({
+          method: 'GET'
+        })
+      );
+    });
+
+    it('should handle pagination for similar movies', async () => {
+      const mockResponse = {
+        page: 2,
+        results: [],
+        total_pages: 10,
+        total_results: 192
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+        status: 200
+      } as Response);
+
+      const result = await tmdbService.getSimilarMovies(550, 2);
+
+      expect(result.page).toBe(2);
+
+      // Verify page parameter is passed
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/.*page=2.*/),
+        expect.any(Object)
+      );
+    });
+
+    it('should throw error for non-existent movie (404)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({
+          status_code: 34,
+          status_message: 'The resource you requested could not be found.'
+        })
+      } as Response);
+
+      await expect(tmdbService.getSimilarMovies(9999999))
+        .rejects
+        .toThrow('Movie not found');
+    });
+
+    it('should throw error for rate limiting (429)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        json: async () => ({
+          status_code: 25,
+          status_message: 'Your request count (40) is over the allowed limit of 40'
+        })
+      } as Response);
+
+      await expect(tmdbService.getSimilarMovies(550))
+        .rejects
+        .toThrow('TMDb API rate limit exceeded');
+    });
+  });
 });

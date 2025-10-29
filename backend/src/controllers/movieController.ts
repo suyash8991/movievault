@@ -53,15 +53,25 @@ export class MovieController {
       res.status(200).json(movie);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({
-          error: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
-        });
+        // Format the error message for invalid ID
+        const errorMessage = error.issues.map((issue) => {
+          if (issue.path.includes('id')) {
+            return `Invalid Movie ID format: ${issue.message}`;
+          }
+          return `${issue.path.join('.')}: ${issue.message}`;
+        }).join(', ');
+
+        res.status(400).json({ error: errorMessage });
         return;
       }
 
-      // Handle movie not found
-      if (error instanceof Error &&
-          (error.message === 'Movie not found' || error.message.includes('Movie not found'))) {
+      // Handle movie not found - check for our custom isNotFoundError property or message
+      if (
+        error instanceof Error &&
+        ((error as any).isNotFoundError ||
+         error.message === 'Movie not found' ||
+         error.message.includes('not found'))
+      ) {
         res.status(404).json({ error: 'Movie not found' });
         return;
       }
@@ -99,15 +109,25 @@ export class MovieController {
       res.status(200).json(similarMovies);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({
-          error: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
-        });
+        // Format the error message for invalid ID
+        const errorMessage = error.issues.map((issue) => {
+          if (issue.path.includes('id')) {
+            return `Invalid Movie ID format: ${issue.message}`;
+          }
+          return `${issue.path.join('.')}: ${issue.message}`;
+        }).join(', ');
+
+        res.status(400).json({ error: errorMessage });
         return;
       }
 
-      // Handle movie not found
-      if (error instanceof Error &&
-          (error.message === 'Movie not found' || error.message.includes('Movie not found'))) {
+      // Handle movie not found - check for our custom isNotFoundError property or message
+      if (
+        error instanceof Error &&
+        ((error as any).isNotFoundError ||
+         error.message === 'Movie not found' ||
+         error.message.includes('not found'))
+      ) {
         res.status(404).json({ error: 'Movie not found' });
         return;
       }
