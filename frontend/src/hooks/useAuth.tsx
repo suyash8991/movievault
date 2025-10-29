@@ -9,6 +9,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthContextType, AuthState, RegisterRequest, User } from '@/types/auth.types';
 import { authService } from '@/services/auth.service';
+import { setAuthCookies, clearAuthCookies } from '@/lib/cookies';
 
 // Default authentication state
 const defaultAuthState: AuthState = {
@@ -67,11 +68,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Handle user login
    * - Makes API request to login endpoint
-   * - Updates auth state and stores tokens
+   * - Updates auth state and stores tokens in both localStorage and cookies
    */
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login({ email, password });
+
+      // Store tokens in cookies for middleware access
+      setAuthCookies(response.accessToken, response.refreshToken);
 
       // Store user data in localStorage
       localStorage.setItem('user', JSON.stringify(response.user));
@@ -98,7 +102,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await authService.register(data);
 
-      // Store tokens and user data
+      // Store tokens in cookies for middleware access
+      setAuthCookies(response.accessToken, response.refreshToken);
+
+      // Store tokens and user data in localStorage
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
       localStorage.setItem('user', JSON.stringify(response.user));
@@ -118,11 +125,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   /**
    * Handle user logout
-   * - Clears auth state and removes tokens from storage
+   * - Clears auth state and removes tokens from storage and cookies
    */
   const logout = () => {
     // Clear tokens from localStorage
     authService.logout();
+
+    // Clear authentication cookies
+    clearAuthCookies();
 
     // Clear user data
     localStorage.removeItem('user');
@@ -134,7 +144,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Refresh access token
    * - Uses refresh token to obtain new access token
-   * - Updates auth state with new tokens
+   * - Updates auth state and cookies with new tokens
    */
   const refreshAccessToken = async () => {
     try {
@@ -145,6 +155,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const response = await authService.refreshToken();
+
+      // Update access token in cookies
+      setAuthCookies(response.accessToken, refreshToken);
 
       setAuthState((prevState) => ({
         ...prevState,

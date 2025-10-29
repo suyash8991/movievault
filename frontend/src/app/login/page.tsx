@@ -1,15 +1,16 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
 
 /**
- * Login Page
+ * Login Page Content Component
  *
  * Displays the login form and handles authentication flow.
  */
-export default function LoginPage() {
+function LoginPageContent() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,5 +41,22 @@ export default function LoginPage() {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * Login Page
+ *
+ * Wraps the login content in Suspense boundary as required by Next.js 15.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

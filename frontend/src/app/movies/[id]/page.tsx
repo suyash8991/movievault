@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { movieService } from '@/services/movie.service';
@@ -16,7 +16,6 @@ import SimilarMovies from '@/components/movies/SimilarMovies';
  */
 export default function MovieDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const movieId = params.id as string;
 
   const [movie, setMovie] = useState<MovieDetails | null>(null);

@@ -8,7 +8,7 @@
  * - Base URL configuration
  */
 
-import type { ApiResponse, RequestConfig } from '@/types/api.types';
+import type { RequestConfig } from '@/types/api.types';
 
 // Base API URL from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -69,21 +69,70 @@ function requestInterceptor(config: RequestConfig): RequestInit {
  * Processes responses and handles errors consistently
  * - Parses JSON responses
  * - Throws ApiError for failed requests
- * - Handles token expiration (401 errors)
+ * - Handles token expiration (401 errors) with automatic refresh
  */
 
-async function responseInterceptor<T>(response: Response): Promise<T> {
+async function responseInterceptor<T>(
+    response: Response,
+    originalUrl: string,
+    originalConfig: RequestInit
+): Promise<T> {
     // Parse JSON response
     const data = await response.json().catch(() => null);
+
     // Handle unsuccessful responses
     if (!response.ok) {
-        // Token expired or invalid - could trigger logout here
+        // Token expired or invalid - attempt to refresh
         if (response.status === 401) {
-            // In the future, we'll implement token refresh logic here
             if (typeof window !== 'undefined') {
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                // Try to refresh the token if we have one
+                if (refreshToken && !originalUrl.includes('/auth/refresh')) {
+                    try {
+                        // Attempt token refresh
+                        const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refreshToken }),
+                        });
+
+                        if (refreshResponse.ok) {
+                            const refreshData = await refreshResponse.json();
+
+                            // Update tokens in localStorage
+                            localStorage.setItem('accessToken', refreshData.accessToken);
+
+                            // Update cookies
+                            const { setAuthCookies } = await import('@/lib/cookies');
+                            setAuthCookies(refreshData.accessToken, refreshToken);
+
+                            // Retry the original request with new token
+                            const retryHeaders = new Headers(originalConfig.headers);
+                            retryHeaders.set('Authorization', `Bearer ${refreshData.accessToken}`);
+
+                            const retryResponse = await fetch(originalUrl, {
+                                ...originalConfig,
+                                headers: retryHeaders,
+                            });
+
+                            return await retryResponse.json();
+                        }
+                    } catch (refreshError) {
+                        console.error('Token refresh failed:', refreshError);
+                    }
+                }
+
+                // If refresh fails or no refresh token, clear auth and redirect
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
-                // Could redirect to login: window.location.href = '/login';
+                localStorage.removeItem('user');
+
+                const { clearAuthCookies } = await import('@/lib/cookies');
+                clearAuthCookies();
+
+                // Redirect to login
+                window.location.href = '/login';
             }
         }
 
@@ -137,8 +186,8 @@ async function apiClient<T>(
         // Make the HTTP request
         const response = await fetch(url, fetchConfig);
 
-        // Apply response interceptor
-        return await responseInterceptor<T>(response);
+        // Apply response interceptor with retry capability
+        return await responseInterceptor<T>(response, url, fetchConfig);
     } catch (error) {
         // Re-throw ApiError instances
         if (error instanceof ApiError) {

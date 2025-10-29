@@ -1,16 +1,17 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RegisterForm from '@/components/auth/RegisterForm';
 import Link from 'next/link';
 
 /**
- * Register Page
+ * Register Page Content Component
  *
  * Displays the registration form and handles account creation flow.
  */
-export default function RegisterPage() {
+function RegisterPageContent() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,5 +54,22 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Register Page
+ *
+ * Wraps the register content in Suspense boundary as required by Next.js 15.
+ */
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

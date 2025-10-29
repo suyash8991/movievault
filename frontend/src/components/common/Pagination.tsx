@@ -36,7 +36,7 @@ export default function Pagination({
 
     // Calculate start and end based on current page position
     let start = Math.max(1, currentPage - 2);
-    let end = Math.min(totalPages, start + maxPagesToShow - 1);
+    const end = Math.min(totalPages, start + maxPagesToShow - 1);
 
     // Adjust start if end is at max
     if (end === totalPages) {

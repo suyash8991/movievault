@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from '@/components/movies/SearchBar';
 import MovieGrid from '@/components/movies/MovieGrid';
 import Pagination from '@/components/common/Pagination';
 import { movieService } from '@/services/movie.service';
-import { Movie, PaginatedMovies } from '@/types/movie.types';
+import { PaginatedMovies } from '@/types/movie.types';
 
 /**
- * Movie Search Page
+ * Movie Search Page Content Component
  *
  * Allows users to search for movies and view results with pagination.
  */
-export default function MovieSearchPage() {
+function MovieSearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get('q') || '';
@@ -98,7 +98,7 @@ export default function MovieSearchPage() {
           <>
             {query && !loading && searchResults.total_results > 0 && (
               <div className="mb-6 text-gray-600">
-                Found {searchResults.total_results} results for "{query}"
+                Found {searchResults.total_results} results for &quot;{query}&quot;
               </div>
             )}
 
@@ -118,5 +118,27 @@ export default function MovieSearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Movie Search Page
+ *
+ * Wraps the search content in Suspense boundary as required by Next.js 15.
+ */
+export default function MovieSearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6">Movie Search</h1>
+          <div className="flex justify-center mt-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <MovieSearchPageContent />
+    </Suspense>
   );
 }
