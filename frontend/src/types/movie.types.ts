@@ -48,3 +48,27 @@ export interface MovieDetails extends Movie {
   voteCount?: number;
   backdropPath?: string | null;
 }
+
+/**
+ * Watchlist item - movie with addedAt timestamp
+ */
+export interface WatchlistItem extends Movie {
+  addedAt: string; // ISO date string
+}
+
+/**
+ * Paginated response for watchlist
+ */
+export interface PaginatedWatchlist {
+  page: number;
+  results: WatchlistItem[];
+  limit: number;
+  total: number;
+}
+
+/**
+ * Request payload for adding to watchlist
+ */
+export interface AddToWatchlistRequest {
+  movieId: number;
+}

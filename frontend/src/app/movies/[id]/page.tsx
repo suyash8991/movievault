@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { movieService } from '@/services/movie.service';
 import { MovieDetails } from '@/types/movie.types';
 import SimilarMovies from '@/components/movies/SimilarMovies';
+import WatchlistButton from '@/components/movies/WatchlistButton';
 
 /**
  * Movie Details Page
@@ -223,6 +224,11 @@ export default function MovieDetailsPage() {
                 </div>
               </div>
             )}
+
+            {/* Watchlist Button */}
+            <div className="mb-6">
+              <WatchlistButton movieId={movie.id} size="lg" />
+            </div>
 
             {/* Overview */}
             <div className="mb-8">
