@@ -61,6 +61,32 @@ export class MovieService {
     }
   }
 
+  async getPopularMovies(page: number = 1): Promise<PaginatedMovieSearchResponse> {
+    try {
+      // Get popular movies from TMDb
+      const tmdbResponse = await this.tmdbService.getPopularMovies(page);
+
+      // Transform TMDb results to our format
+      const results: MovieSearchResult[] = tmdbResponse.results.map(this.transformTmdbMovie);
+
+      // Cache movies in database (non-blocking for performance)
+      Promise.all(tmdbResponse.results.map(movie => this.cacheMovieIfNotExists(movie)))
+        .catch(error => console.warn('Error caching popular movies:', error));
+
+      return {
+        page: tmdbResponse.page,
+        results,
+        total_pages: tmdbResponse.total_pages,
+        total_results: tmdbResponse.total_results
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('TMDb API')) {
+        throw error; // Re-throw TMDb errors as-is
+      }
+      throw new Error(`Failed to get popular movies: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   private transformTmdbMovie(tmdbMovie: TmdbMovie): MovieSearchResult {
     return {
       id: tmdbMovie.id,

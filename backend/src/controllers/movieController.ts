@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { MovieService } from '../services/movieService';
-import { movieSearchSchema, movieIdSchema } from '../schemas/movieSchemas';
+import { movieSearchSchema, movieIdSchema, moviePopularSchema } from '../schemas/movieSchemas';
 
 export class MovieController {
   constructor(private movieService: MovieService) {}
@@ -147,6 +147,42 @@ export class MovieController {
       }
 
       console.error('Similar movies error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  async getPopularMovies(req: Request, res: Response): Promise<void> {
+    try {
+      // Validate query parameters
+      const validatedParams = moviePopularSchema.parse(req.query);
+
+      // Get popular movies using the movie service
+      const results = await this.movieService.getPopularMovies(validatedParams.page);
+
+      res.status(200).json(results);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+        });
+        return;
+      }
+
+      // Handle TMDb API errors
+      if (error instanceof Error && error.message.startsWith('TMDb API')) {
+        if (error.message.includes('rate limit')) {
+          res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+          return;
+        }
+        if (error.message.includes('authentication')) {
+          res.status(503).json({ error: 'Movie service temporarily unavailable' });
+          return;
+        }
+        res.status(500).json({ error: 'Failed to retrieve popular movies' });
+        return;
+      }
+
+      console.error('Popular movies error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
