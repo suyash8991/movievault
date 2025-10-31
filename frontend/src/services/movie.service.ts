@@ -21,14 +21,12 @@ export const movieService = {
   },
 
   /**
-   * Get popular movies (placeholder for future implementation)
+   * Get popular movies
    * GET /api/movies/popular
    */
   async getPopularMovies(page: number = 1): Promise<PaginatedMovies> {
-    // This endpoint doesn't exist yet, but it's good to plan ahead
-    // Fallback to search with empty query if endpoint doesn't exist yet
-    return api.get<PaginatedMovies>('/api/movies/search', {
-      params: { q: 'popular', page }
+    return api.get<PaginatedMovies>('/api/movies/popular', {
+      params: { page }
     });
   },
 
