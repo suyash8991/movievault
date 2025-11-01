@@ -72,3 +72,62 @@ export interface PaginatedWatchlist {
 export interface AddToWatchlistRequest {
   movieId: number;
 }
+
+/**
+ * Rating with user information
+ */
+export interface RatingWithUser {
+  id: string;
+  rating: number;
+  review: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+/**
+ * Rating with movie information
+ */
+export interface RatingWithMovie {
+  id: string;
+  movieId: number;
+  rating: number;
+  review: string | null;
+  createdAt: string;
+  updatedAt: string;
+  movie: Movie;
+}
+
+/**
+ * Paginated response for movie ratings
+ */
+export interface PaginatedMovieRatings {
+  results: RatingWithUser[];
+  page: number;
+  limit: number;
+  total: number;
+  averageRating: number | null;
+  totalRatings: number;
+}
+
+/**
+ * Paginated response for user ratings
+ */
+export interface PaginatedUserRatings {
+  results: RatingWithMovie[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+/**
+ * Request payload for creating/updating a rating
+ */
+export interface CreateRatingRequest {
+  rating: number;
+  review?: string;
+}

@@ -8,6 +8,7 @@ import { movieService } from '@/services/movie.service';
 import { MovieDetails } from '@/types/movie.types';
 import SimilarMovies from '@/components/movies/SimilarMovies';
 import WatchlistButton from '@/components/movies/WatchlistButton';
+import RatingSection from '@/components/movies/RatingSection';
 
 /**
  * Movie Details Page
@@ -267,6 +268,12 @@ export default function MovieDetailsPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Ratings Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Ratings & Reviews</h2>
+          <RatingSection movieId={movie.id} />
         </div>
 
         {/* Similar Movies Section */}
