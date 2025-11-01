@@ -20,7 +20,7 @@ It showcases professional-grade software engineering practices:
 
 - 🔐 **User Authentication** — Register, login, refresh, logout (JWT + bcrypt)
 - 🎬 **Movie Search & Details** — TMDb API integration with caching and error handling
-- ⭐ **Watchlist & Favorites** — Persistent user preferences
+- ⭐ **Watchlist & Ratings** — Persistent user preferences and movie ratings with reviews (1-10 scale)
 - 🧠 **AI-Powered Recommendations** — Collaborative & content-based filtering
 - 📱 **Responsive UI** — Modern Next.js frontend with Tailwind CSS and Framer Motion
 - 🧪 **100% TDD Compliance** — Unit, integration, and API tests across modules
@@ -133,16 +133,20 @@ TDD cycle (`Red → Green → Refactor`) ensures robust features and clean code.
 
 ## 🧩 API Endpoints (Summary)
 
-| Method              | Endpoint               | Description                                       |
-| ------------------- | ---------------------- | ------------------------------------------------- |
-| **POST**            | `/api/auth/register`   | Register a new user                               |
-| **POST**            | `/api/auth/login`      | Login and receive tokens                          |
-| **POST**            | `/api/auth/refresh`    | Refresh access token                              |
-| **GET**             | `/api/movies`          | Get movies with filters (pagination, genre, year) |
-| **GET**             | `/api/movies/search`   | Search movies by title                            |
-| **GET**             | `/api/movies/:id`      | Movie details + recommendations                   |
-| **GET/PUT**         | `/api/users/profile`   | Retrieve / update user profile                    |
-| **GET/POST/DELETE** | `/api/users/watchlist` | Manage watchlist                                  |
+| Method              | Endpoint                     | Description                                       |
+| ------------------- | ---------------------------- | ------------------------------------------------- |
+| **POST**            | `/api/auth/register`         | Register a new user                               |
+| **POST**            | `/api/auth/login`            | Login and receive tokens                          |
+| **POST**            | `/api/auth/refresh`          | Refresh access token                              |
+| **GET**             | `/api/movies`                | Get movies with filters (pagination, genre, year) |
+| **GET**             | `/api/movies/search`         | Search movies by title                            |
+| **GET**             | `/api/movies/:id`            | Movie details + recommendations                   |
+| **GET/PUT**         | `/api/users/profile`         | Retrieve / update user profile                    |
+| **GET/POST/DELETE** | `/api/users/watchlist`       | Manage watchlist                                  |
+| **POST**            | `/api/movies/:id/ratings`    | Rate a movie (1-10) with optional review          |
+| **GET**             | `/api/movies/:id/ratings`    | Get all ratings for a movie with average          |
+| **GET**             | `/api/users/ratings`         | Get user's movie ratings                          |
+| **DELETE**          | `/api/movies/:id/ratings`    | Delete user's rating for a movie                  |
 
 For full specifications, see [`docs/API_endpoint.md`](docs/API_endpoint.md).
 
