@@ -14,8 +14,25 @@ export interface User {
   username: string;
   firstName: string;
   lastName: string;
+  bio: string | null;
+  avatarUrl: string | null;
   createdAt: Date;
+  updatedAt: Date;
   // password intentionally omitted from return type for security
+}
+
+export interface UserProfile extends User {
+  statistics: {
+    watchlistCount: number;
+    ratingsCount: number;
+  };
+}
+
+export interface UpdateProfileData {
+  firstName?: string;
+  lastName?: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface UserRepository {
@@ -23,6 +40,8 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   findById(id: string): Promise<User | null>;
   findByEmailWithPassword(email: string): Promise<(User & { password: string }) | null>;
+  getProfileWithStatistics(userId: string): Promise<UserProfile | null>;
+  updateProfile(userId: string, data: UpdateProfileData): Promise<User>;
 }
 
 export class PrismaUserRepository implements UserRepository {
@@ -37,7 +56,10 @@ export class PrismaUserRepository implements UserRepository {
         username: true,
         firstName: true,
         lastName: true,
+        bio: true,
+        avatarUrl: true,
         createdAt: true,
+        updatedAt: true,
         // password: false - explicitly exclude password
       }
     });
@@ -54,7 +76,10 @@ export class PrismaUserRepository implements UserRepository {
         username: true,
         firstName: true,
         lastName: true,
+        bio: true,
+        avatarUrl: true,
         createdAt: true,
+        updatedAt: true,
         // password: false - explicitly exclude password
       }
     });
@@ -71,7 +96,10 @@ export class PrismaUserRepository implements UserRepository {
         username: true,
         firstName: true,
         lastName: true,
+        bio: true,
+        avatarUrl: true,
         createdAt: true,
+        updatedAt: true,
         // password: false - explicitly exclude password
       }
     });
@@ -89,8 +117,74 @@ export class PrismaUserRepository implements UserRepository {
         username: true,
         firstName: true,
         lastName: true,
+        bio: true,
+        avatarUrl: true,
         createdAt: true,
+        updatedAt: true,
         password: true, // Include password for authentication
+      }
+    });
+
+    return user;
+  }
+
+  async getProfileWithStatistics(userId: string): Promise<UserProfile | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            watchlist: true,
+            ratings: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    // Transform the Prisma result to match UserProfile interface
+    const { _count, ...userData } = user;
+
+    return {
+      ...userData,
+      statistics: {
+        watchlistCount: _count.watchlist,
+        ratingsCount: _count.ratings
+      }
+    };
+  }
+
+  async updateProfile(userId: string, data: UpdateProfileData): Promise<User> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName !== undefined && { firstName: data.firstName }),
+        ...(data.lastName !== undefined && { lastName: data.lastName }),
+        ...(data.bio !== undefined && { bio: data.bio }),
+        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl })
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 

@@ -302,9 +302,11 @@ describe('Authentication Middleware', () => {
         .set('Authorization', `Bearer ${validToken}`)
         .expect(200);
 
-      expect(response.body.user).toBeDefined();
-      expect(response.body.user.email).toBe('middleware@example.com');
-      expect(response.body.user.password).toBeUndefined();
+      expect(response.body.email).toBe('middleware@example.com');
+      expect(response.body.password).toBeUndefined();
+      expect(response.body.statistics).toBeDefined();
+      expect(response.body.statistics.watchlistCount).toBeDefined();
+      expect(response.body.statistics.ratingsCount).toBeDefined();
     });
 
     it('should return 401 when no token provided', async () => {

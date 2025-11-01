@@ -6,6 +6,7 @@ import { PrismaMovieRepository } from './repositories/movieRepository';
 import { PrismaWatchlistRepository } from './repositories/watchlistRepository';
 import { PrismaRatingRepository } from './repositories/ratingRepository';
 import { AuthService } from './services/authService';
+import { UserService } from './services/userService';
 import { MovieService } from './services/movieService';
 import { WatchlistService } from './services/watchlistService';
 import { RatingService } from './services/ratingService';
@@ -28,6 +29,7 @@ const movieRepository = new PrismaMovieRepository(prisma);
 const watchlistRepository = new PrismaWatchlistRepository(prisma);
 const ratingRepository = new PrismaRatingRepository(prisma);
 const authService = new AuthService(userRepository);
+const userService = new UserService(userRepository);
 const tmdbService = new TmdbService(process.env.TMDB_API_KEY || '');
 const movieService = new MovieService(tmdbService, movieRepository);
 const watchlistService = new WatchlistService(watchlistRepository, movieRepository, tmdbService);
@@ -36,7 +38,7 @@ const authMiddleware = new AuthMiddleware(userRepository);
 
 // Initialize controllers
 const authController = new AuthController(authService, userRepository);
-const userController = new UserController(userRepository);
+const userController = new UserController(userService);
 const movieController = new MovieController(movieService);
 const watchlistController = new WatchlistController(watchlistService);
 const ratingController = new RatingController(ratingService);

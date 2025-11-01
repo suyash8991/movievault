@@ -10,5 +10,9 @@ export function createUserRoutes(userController: UserController, authMiddleware:
     userController.getProfile(req, res)
   );
 
+  router.put('/profile', authMiddleware.authenticate, (req: AuthenticatedRequest, res) =>
+    userController.updateProfile(req, res)
+  );
+
   return router;
 }

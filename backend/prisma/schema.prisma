@@ -22,6 +22,8 @@ model User {
   password  String
   firstName String
   lastName  String
+  bio       String?     // Optional user biography
+  avatarUrl String?     // Optional avatar image URL
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   watchlist Watchlist[]
