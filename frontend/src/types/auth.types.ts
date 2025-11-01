@@ -5,7 +5,24 @@ export interface User {
     username: string,
     firstName: string,
     lastName: string,
-    createdAt: string
+    bio: string | null,
+    avatarUrl: string | null,
+    createdAt: string,
+    updatedAt: string
+}
+
+export interface UserProfile extends User {
+    statistics: {
+        watchlistCount: number;
+        ratingsCount: number;
+    };
+}
+
+export interface UpdateProfileRequest {
+    firstName?: string;
+    lastName?: string;
+    bio?: string | null;
+    avatarUrl?: string | null;
 }
 
 export interface LoginRequest {
