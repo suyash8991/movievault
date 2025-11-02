@@ -6,7 +6,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "start": "ts-node src/server.ts",
-    "dev": "nodemon --exec ts-node src/server.ts"
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "benchmark": "ts-node tests/performance/benchmark.ts"
   },
   "jest": {
     "preset": "ts-jest",

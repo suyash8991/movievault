@@ -3,3 +3,6 @@ node_modules
 .env
 
 /generated/prisma
+
+# Benchmark results (local testing only)
+tests/performance/results/
