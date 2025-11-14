@@ -35,16 +35,37 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>(defaultAuthState);
 
+  // Debug: Track auth state changes
+  useEffect(() => {
+    console.log('[Auth] State changed:', {
+      isAuthenticated: authState.isAuthenticated,
+      isLoading: authState.isLoading,
+      hasUser: !!authState.user,
+      userEmail: authState.user?.email,
+    });
+  }, [authState]);
+
   // Initialize auth state from localStorage on component mount
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('[Auth] Initializing authentication state...');
       try {
         const accessToken = localStorage.getItem('accessToken');
         const refreshToken = localStorage.getItem('refreshToken');
         const userJson = localStorage.getItem('user');
 
+        console.log('[Auth] Storage check:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasUser: !!userJson,
+        });
+
         if (accessToken && refreshToken && userJson) {
           const user = JSON.parse(userJson) as User;
+
+          console.log('[Auth] Valid tokens found, setting authenticated state');
+          // Re-sync cookies to ensure middleware can access them
+          setAuthCookies(accessToken, refreshToken);
 
           setAuthState({
             accessToken,
@@ -54,10 +75,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoading: false,
           });
         } else {
+          // Clear any stale cookies if localStorage doesn't have tokens
+          console.log('[Auth] No valid tokens found, clearing cookies and setting unauthenticated state');
+          clearAuthCookies();
           setAuthState({ ...defaultAuthState, isLoading: false });
         }
       } catch (error) {
-        console.error('Error initializing auth state:', error);
+        console.error('[Auth] Error initializing auth state:', error);
+        clearAuthCookies();
         setAuthState({ ...defaultAuthState, isLoading: false });
       }
     };
@@ -72,14 +97,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const login = async (email: string, password: string) => {
     try {
+      console.log('[Auth] Login attempt for:', email);
       const response = await authService.login({ email, password });
 
+      console.log('[Auth] Login successful, storing tokens');
       // Store tokens in cookies for middleware access
       setAuthCookies(response.accessToken, response.refreshToken);
 
-      // Store user data in localStorage
+      // Store tokens and user data in localStorage
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
       localStorage.setItem('user', JSON.stringify(response.user));
 
+      console.log('[Auth] Tokens stored, updating auth state');
       setAuthState({
         user: response.user,
         accessToken: response.accessToken,
@@ -87,8 +117,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated: true,
         isLoading: false,
       });
+      console.log('[Auth] Login complete, user authenticated');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('[Auth] Login error:', error);
       throw error;
     }
   };
@@ -128,6 +159,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * - Clears auth state and removes tokens from storage and cookies
    */
   const logout = () => {
+    console.log('[Auth] Logging out user');
     // Clear tokens from localStorage
     authService.logout();
 
@@ -139,6 +171,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Reset auth state
     setAuthState({ ...defaultAuthState, isLoading: false });
+    console.log('[Auth] Logout complete');
   };
 
   /**

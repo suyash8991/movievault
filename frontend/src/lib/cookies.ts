@@ -49,8 +49,8 @@ export function deleteCookie(name: string) {
  * Set authentication tokens in cookies
  */
 export function setAuthCookies(accessToken: string, refreshToken: string) {
-  // Access token expires in 15 minutes (same as JWT)
-  setCookie('accessToken', accessToken, 0.01); // ~15 minutes in days
+  // Access token expires in 1 day (matches localStorage persistence better)
+  setCookie('accessToken', accessToken, 1); // 1 day
 
   // Refresh token expires in 7 days (same as JWT)
   setCookie('refreshToken', refreshToken, 7);

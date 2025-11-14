@@ -37,13 +37,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from login/register pages
-  if ((pathname === '/login' || pathname === '/register') && isAuthenticated) {
-    // Check if there's a returnTo parameter
-    const returnTo = request.nextUrl.searchParams.get('returnTo');
-    const destination = returnTo || '/dashboard';
-    return NextResponse.redirect(new URL(destination, request.url));
-  }
+  // Note: We intentionally don't redirect authenticated users away from login/register
+  // The client-side will handle this to avoid cookie/localStorage sync issues
 
   // Allow the request to proceed
   return NextResponse.next();

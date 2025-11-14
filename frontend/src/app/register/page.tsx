@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RegisterForm from '@/components/auth/RegisterForm';
@@ -12,15 +12,36 @@ import Link from 'next/link';
  * Displays the registration form and handles account creation flow.
  */
 function RegisterPageContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '/dashboard';
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (use useEffect to avoid render-time navigation)
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log('[RegisterPage] User already authenticated, redirecting to:', returnTo);
+      // Use replace instead of push to avoid adding to browser history
+      router.replace(returnTo);
+    }
+  }, [isAuthenticated, isLoading, returnTo]);
+
+  // Show loading state while auth is being initialized
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Don't render register form if authenticated (will redirect via useEffect)
   if (isAuthenticated) {
-    router.push(returnTo);
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   // Handle successful registration
